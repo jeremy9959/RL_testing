@@ -130,7 +130,7 @@ class Model:
 
 
 
-   #TODO implement a way to choose actions on a distribution
+
     def get_action(self, state):
         #print( self.state_action_distribution[state])
         return np.random.choice(self.actions, size=1, p=[x for x in self.state_action_distribution[state].values()])[0]
