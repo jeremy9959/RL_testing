@@ -20,7 +20,7 @@ class Environment:
         self.max_inventory = n
         self.inventory = 3
         self.actions = [x for x in range(n)]
-        self.customer = None
+
         self.lam = lam
 
         self.customers = [x for x in range(n)]
@@ -74,10 +74,11 @@ class Environment:
         #print("Reward", reward)
 
         num_customers = self.get_customer()
+        self.num_customer = num_customers
 
         reward += self.order(num_customers)
         #print(f"Reward: {reward}, Action: {action}, Customers: {num_customers}")
-        return reward
+        return (reward, num_customers)
 
 
 class Model:
@@ -106,7 +107,7 @@ class Model:
         self.action_log.append(current_action)
 
         unbinerized_state = pickle.loads(state)
-        reward = unbinerized_state.send_action(current_action)
+        reward = unbinerized_state.send_action(current_action)[0]
         print(f"Action: {current_action}, Reward: {reward}")
         future_state = pickle.dumps(unbinerized_state)
         if future_state not in self.state_actions:
@@ -150,25 +151,25 @@ class Model:
 
 
 if __name__ == "__main__":
-    env1 = Environment(20000, 4, 50)
+    env1 = Environment(20000, 5, 50)
+    bank = 5
     """Model which takes in actions and a gamma hyperparameter"""
 
-    model = Model(env1.actions, .9, .01, .01)
-
+    model = Model(env1.actions, .9, 1, .01)
+    customer_l = []
     """execute the loop until terminal state"""
     count2 = 0
     trial = 20000
     for i in range(trial):
         binerized_env = pickle.dumps(env1)
         next_action = model.learn(binerized_env)
-        env1.send_action(next_action)
-        if env1.customer == 1:
-            count2 += 1
+        _ , t= env1.send_action(next_action)
 
-            # print(f"Customer recieved, Bank Value:, Action: {next_action}, Inventory: {env1.inventory}")
-        else:
-            # print(f"No customer recieved, Bank Value:, Action: {next_action}, Inventory: {env1.inventory}")
-            pass
+        customer_l.append(t)
+
+
+
+
     # print(model.action_log)
     count = 0
     customer_rate = count2 / trial
@@ -177,16 +178,29 @@ if __name__ == "__main__":
             count += 1
     """How accurate the models strategy is, the close it is to p_s the more optimal the strategy"""
     model_performance = count / trial
-    print(f"Our model is: {(abs(model_performance - customer_rate) * 100):.3f}% away from the optimal policy")
+    print(customer_l)
+    count = 0
+    for i in customer_l:
+        count += i
+
+    print(f"Average customer per step: {count/len(customer_l)} with lambda: {env1.lam}")
 
     print(model.action_log)
+    count2 = 0
+    half = len(model.action_log)//2
+    for i in range(half, len(model.action_log)):
+        count2 += model.action_log[i]
 
-    """
-    Notes: Q-learning method uses more hyperparameters than MC policy generation. Although, Q-learning is much more
-    computationally cheap. Q-learning is not as accurate, approaching an optimal pick rate of around 90 percent.
+    average = count2/(len(model.action_log)-half)
+    print(f"Average inventory restock per step: {average}")
+    assert(len(customer_l) == len(model.action_log))
 
-    Q-Learning is not going to be an affective algorithm for this problem. Q-Learning takes the next state
-    reward as a factor for the current policies performance. Because the policy has no affect on what the next state
-    is going to be, there is no point in considering the value of the next state when training the model.
-    Furthermore, our algorithm will never choose THE optimal strategy due to the epsilon greedy implementation. 
-    """
+
+"""
+Because of the number of states and actions, this model needs a lot of samples to train properly. Using an epsilon (training rate) of .01, 
+which in my opinion is a little high with 50 different actions to choose from. Although, despite increasing the states ad actions, the model was still
+able to approach an optimal buy rate. 
+
+Things I would like to try are the bank values of the bot at the end of each trial. Adding bank values to the 
+environemnt would exponentially increase the amount of different states.
+"""
