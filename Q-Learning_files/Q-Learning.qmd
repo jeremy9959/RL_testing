@@ -1,0 +1,7 @@
+---
+title: "Q-Learning"
+subtitle: "Inventory Control with Poisson Distribution"
+format: pdf
+---
+
+## Hello World
