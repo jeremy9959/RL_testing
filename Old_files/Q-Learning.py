@@ -82,7 +82,7 @@ class Model:
         self.action_log.append(current_action)
 
         unbinerized_state = pickle.loads(state)
-        reward = unbinerized_state.send_action(current_action)
+        reward = unbinerized_state.action_outcome(current_action)
         future_state = pickle.dumps(unbinerized_state)
         if future_state not in self.state_actions:
             self.state_actions[future_state] = dict()
@@ -160,7 +160,7 @@ if __name__ == "__main__":
     Notes: Q-learning method uses more hyperparameters than MC policy generation. Although, Q-learning is much more
     computationally cheap. Q-learning is not as accurate, approaching an optimal pick rate of around 90 percent.
     
-    Q-Learning is not going to be an affective algorithm for this problem. Q-Learning takes the next state
+    Q-Learning.qmd is not going to be an effective algorithm for this problem. Q-Learning.qmd takes the next state
     reward as a factor for the current policies performance. Because the policy has no affect on what the next state
     is going to be, there is no point in considering the value of the next state when training the model.
     Furthermore, our algorithm will never choose THE optimal strategy due to the epsilon greedy implementation. 

@@ -15,36 +15,24 @@ class Environment:
     enter at a given episode. K is sampled using a poisson distribution.
     """
 
-    def __init__(self, T, lam, n):
-        self.T = T
-
+    def __init__(self, lam, n):
         self.max_inventory = n
         self.inventory = 3
-        self.actions = [x for x in range(n)]
-
+        self.actions = self.customers  = [x for x in range(n)]
         self.lam = lam
-
-        self.customers = [x for x in range(n)]
         self.distribution = [(1/(math.e ** self.lam))*(1/(math.factorial(k))) * (self.lam ** k) for k in self.customers]
-        count = 0
-        for i in self.distribution:
-            count += i
-        print(count)
 
     """Function that simulates buyig stock. The amount we want to buy is determined by the model. I return the reward
     for buying x inventory. Each item costs 1 reward, so the total reward is - amount of stock purchased."""
     def buy_inventory(self, amount):
-
         if self.inventory + amount > self.max_inventory:
             self.inventory = self.max_inventory
-            return -amount
         else:
             self.inventory += amount
-            return -amount
+        return -amount
 
     """function that randomly samples a poisson distribution and returns the number of customers at a given step"""
     def get_customer(self):
-        #print(self.distribution)
         return np.random.choice(self.customers, p = self.distribution, size=1)[0]
 
     """Function that simulates customers buying inventory. Returns the reward received for x amount of customers buying 
@@ -64,16 +52,10 @@ class Environment:
 
     """This function takes the action from the model and returns the reward from that action."""
     def send_action(self, action):
-        reward = 0
-
-        reward += self.buy_inventory(action)
-        #print("Reward", reward)
-
         num_customers = self.get_customer()
+        reward = self.buy_inventory(action) + self.order(num_customers)
         self.num_customer = num_customers
 
-        reward += self.order(num_customers)
-        #print(f"Reward: {reward}, Action: {action}, Customers: {num_customers}")
         return (reward, num_customers)
 
 
@@ -99,10 +81,8 @@ class Model:
     """
     def __init__(self, actions, gamma, alpha, epsilon):
         self.actions = actions
-
-        self.state_actions = dict()
+        self.state_actions =  dict()
         self.state_action_distribution = dict()
-        self.action = None
         self.alpha = alpha
         self.action_log = []
         self.gamma = gamma
@@ -127,7 +107,7 @@ class Model:
         unbinerized_state = pickle.loads(state)
 
         """Get the reward for the current action in our state"""
-        reward = unbinerized_state.send_action(current_action)[0]
+        reward = unbinerized_state.action_outcome(current_action)[0]
         print(f"Action: {current_action}, Reward: {reward}")
 
         """Store the future state"""
@@ -154,9 +134,6 @@ class Model:
         self.update_distribution(state)
         return current_action
 
-
-
-
     def get_action(self, state):
         #print( self.state_action_distribution[state])
         return np.random.choice(self.actions, size=1, p=[x for x in self.state_action_distribution[state].values()])[0]
@@ -165,14 +142,11 @@ class Model:
     using epsilon, and decrease the probability of all other actions using epsilon"""
     def update_distribution(self, state):
         best_action = self.get_max_value(state)
-        print(f"Actions:{self.state_actions[state]}")
-        print(f"Best action:{best_action}")
         for x,y in self.state_action_distribution[state].items():
             if x == best_action:
                 self.state_action_distribution[state][x] += (1 - y) * self.epsilon
             else:
                 self.state_action_distribution[state][x] -= y * self.epsilon
-
 
     def get_max_value(self, state):
         return max(self.state_actions[state], key = self.state_actions[state].get)
@@ -180,7 +154,7 @@ class Model:
 
 if __name__ == "__main__":
     """Create environment"""
-    env1 = Environment(200000, 20, 50)
+    env1 = Environment(20, 50)
 
     """Create Model"""
     model = Model(env1.actions, .9, 1, .03)
@@ -214,29 +188,17 @@ if __name__ == "__main__":
     """Get the average number of customers received at each step"""
     print(f"Average customer per step: {count/len(customer_l)} with lambda: {env1.lam}")
 
-    #print(model.action_log)
+
     count2 = 0
     half = len(model.action_log)//4
     for i in range(len(model.action_log) - 30, len(model.action_log)):
         count2 += model.action_log[i]
+    print(customer_l[len(model.action_log) - 30:])
+    print(max(customer_l, key = lambda i: customer_l[i]))
     print(model.action_log[len(model.action_log) - 30:])
     average = count2/30
 
     """Print the average amount of stock purchased at each step. Should roughly match the average number of customers
     revieved at each step"""
     print(f"Average inventory restock per step: {average}")
-    assert(len(customer_l) == len(model.action_log))
 
-
-"""
-
-
-To track how successful the model was, I logged down the amount of stock it purchased at each step, then I divided the total amount of 
-stock purchased in a trial by the number of steps. This number represents the average stock purchased per step. I then calculated the 
-expected number of customers each step.The closer the model is to the average customer arrival per step, means the model is optimally 
-buying stock.
-
-
-Things I would like to try are the bank values of the bot at the end of each trial. Adding bank values to the 
-environment would exponentially increase the amount of different states.
-"""

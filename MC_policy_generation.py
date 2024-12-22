@@ -115,7 +115,7 @@ class Model:
             binerized_curr_state = pickle.dumps(current_state)
 
             """Set the future state and get the reward of the current episode"""
-            reward = future_state.send_action(self.action)
+            reward = future_state.action_outcome(self.action)
 
             """Calculating G, our reward for episode i"""
             G = (G * (self.gamma ** (i))) + (reward)
