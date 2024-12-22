@@ -82,7 +82,7 @@ class Model:
         self.action_log.append(current_action)
 
         unbinerized_state = pickle.loads(state)
-        reward = unbinerized_state.send_action(current_action)
+        reward = unbinerized_state.action_outcome(current_action)
         future_state = pickle.dumps(unbinerized_state)
         if future_state not in self.state_actions:
             self.state_actions[future_state] = dict()

@@ -107,7 +107,7 @@ class Model:
         unbinerized_state = pickle.loads(state)
 
         """Get the reward for the current action in our state"""
-        reward = unbinerized_state.send_action(current_action)[0]
+        reward = unbinerized_state.action_outcome(current_action)[0]
         print(f"Action: {current_action}, Reward: {reward}")
 
         """Store the future state"""

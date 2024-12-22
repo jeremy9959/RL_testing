@@ -5,15 +5,12 @@ class Environment:
     def __init__(self, lam, n):
         self.max_inventory = n
         self.inventory = 3
-        self.actions = self.customers  = [x for x in range(n)]
+        self.actions = self.customers = [x for x in range(n)]
         self.lam = lam
         self.distribution = [(1/(math.e ** self.lam))*(1/(math.factorial(k))) * (self.lam ** k) for k in self.customers]
 
     def buy_inventory(self, amount):
-        if self.inventory + amount > self.max_inventory:
-            self.inventory = self.max_inventory
-        else:
-            self.inventory += amount
+        self.inventory =  self.max_inventory if self.inventory + amount > self.max_inventory else self.inventory + amount
         return -amount
 
     def get_customer(self):
@@ -25,7 +22,7 @@ class Environment:
         self.inventory = 0 if self.inventory < num_customers else self.inventory - orders_sold
         return 2 * (orders_sold  - orders_missed)
 
-    def send_action(self, action):
+    def action_outcome(self, action):
         num_customers = self.get_customer()
         reward = self.buy_inventory(action) + self.order(num_customers)
         return (reward, num_customers)
@@ -44,7 +41,7 @@ class Model:
         self.epsilon = epsilon
 
     def get_action(self, state):
-        current_action = self.get_max_action(state.inventory)
+        current_action = self.choose_action(state.inventory)
         self.action_log.append(current_action)
         self.current_SA = (state.inventory, current_action)
         return current_action
@@ -61,8 +58,7 @@ class Model:
                                                                self.state_actions[self.current_SA]))
         self.update_distribution(self.current_SA[0])
 
-
-    def get_max_action(self, state):
+    def choose_action(self, state):
         return np.random.choice(self.actions, size=1, p=self.state_action_distribution[state])[0]
 
     def update_distribution(self, state):
@@ -76,7 +72,6 @@ class Model:
     def get_max_value(self, state):
         return np.unravel_index(np.argmax(self.state_actions[state]), self.state_actions.shape)[1]
 
-
 if __name__ == "__main__":
     env1 = Environment(20, 50)
 
@@ -84,29 +79,17 @@ if __name__ == "__main__":
 
     customer_l = []
 
-    count2 = 0
     trial = 200000
 
     for i in range(trial):
         next_action = model.get_action(env1)
-        reward , t= env1.send_action(next_action)
+        reward , t= env1.action_outcome(next_action)
         model.policy_update(reward, env1)
         customer_l.append(t)
 
-    count = 0
-    for i in customer_l:
-        count += i
-
-    print(f"Average customer per step: {count/len(customer_l)} with lambda: {env1.lam}")
-
-    count2 = 0
-    half = len(model.action_log)//4
-    for i in range(len(model.action_log) - 30, len(model.action_log)):
-        count2 += model.action_log[i]
-
     print(customer_l[len(model.action_log) - 30:])
     print(model.action_log[len(model.action_log) - 30:])
-    average = count2/30
-
-    print(f"Average inventory restock per step: {average}")
-
+    average_customer = np.average(customer_l[len(model.action_log) - 30:])
+    average_action = np.average(model.action_log[len(model.action_log) - 30:])
+    print(f"Average customer per step: {average_customer} with lambda: {env1.lam}")
+    print(f"Average inventory restock per step: {average_action}")
