@@ -2,14 +2,23 @@
 title: "Q-Learning"
 subtitle: "Inventory Control with Poisson Distribution"
 format: pdf
-jupyter: python3
+execute:
+  error: true
+kernel:
+  name: myenv1
+  display_name: "Python (myenv1)"
+  language: python
+include-in-header:
+  text: |
+    \usepackage{fvextra}
+    \DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,commandchars=\\\{\}}
 ---
 
 # Introduction
 Imagine you own a store selling products. In order to sell the products your store sells, you need to
 hold onto inventory. Because your store is only so big, there is a limit to how much inventory you can hold.
 Furthermore, purchasing inventory costs you money. Your goal in this experiment, is to maximize your profit
-by selling the most amount of stock, and purchasing the smallest amount of inventory.
+by selling the most amount of stock, while minimizing inventory.
 
 # Building the environment
 To simulate this environment, we imagine customers arriving at our store,
@@ -31,6 +40,7 @@ distribution looks, while n controls the maximum amount of customers that can ar
 (Note that, if n is too small for your $\lambda$, an error will occur).
 
 ```{python}
+#| code-fold: true
 import numpy as np
 import math
 
@@ -40,11 +50,13 @@ class Environment:
         self.inventory = 3
         self.actions = self.customers = [x for x in range(n)]
         self.lam = lam
-        self.distribution = [(1/(math.e ** self.lam))*(1/(math.factorial(k))) * (self.lam ** k) for k in self.customers]
+        self.distribution = [(1/(math.e ** self.lam)) *
+                            (1/(math.factorial(k))) *
+                            (self.lam ** k) for k in self.customers]
 
 ```
 
-Here we compute P(X = k) from 0 <= k <= n and store each probability in our list called self.distribution
+Here we compute P(X = k) from 0 <= k <= n - 1 and store each probability in our list called self.distribution
 
 ```{python}
 
@@ -53,16 +65,17 @@ Here we compute P(X = k) from 0 <= k <= n and store each probability in our list
 ```
 
 This function returns the amount of customers for any given episode. Here we randomly choose an integer
-from our self.customers list which contains integers ranging from 0 to n - 1. Each integer in this list has a
-defined probability of being chosen which is defined in our distribution list; self.distribution, where
-the probability of each integer hitting is stored in the same index in our distribution list.
+from our self.customers list which contains integers ranging from 0 to n - 1. Self.distribution
+contains a list of probabilities, where the index of each probability represents the amount of customers.
 
 ## Reward
 The environment receives actions and outputs a reward from those actions. Technically, this reward is a feature
-of the observer as the observer observes the outcome of the action the model takes and decides whether the action
-had a positive or negative outcome (more on this later). Anyways, the reward is defined in the environment as:
+of the observer, as the observer observes the outcome of the action the model takes, and decides whether the action
+had a positive or negative outcome (the observer is discussed in more detail later). Thus, the
+reward is defined in the environment as:
 
 ```{python}
+
     def action_outcome(self, action):
         num_customers = self.get_customer()
         reward = self.buy_inventory(action) + self.order(num_customers)
@@ -76,6 +89,7 @@ $$
 When calculating our reward, we need to update our inventory amount, so we pass our action to a helper function
 that processes our action and updates our inventory amount accordingly
 ```{python}
+#| code-fold: true
     def buy_inventory(self, amount):
         self.inventory =  self.max_inventory if self.inventory + amount > self.max_inventory else self.inventory + amount
         return -amount
@@ -85,6 +99,7 @@ Finally, we need to process the number of customers at this episode and simulate
 function: order(int num_customers), which takes an integer representing the amount of customers coming into our store,
 updates our inventory, and returns the amount of money we receive from these customers.
 ```{python}
+
     def order(self, num_customers):
         orders_sold = self.inventory if self.inventory < num_customers else num_customers
         orders_missed = num_customers - orders_sold
@@ -93,9 +108,9 @@ updates our inventory, and returns the amount of money we receive from these cus
 ```
 
 If the amount of customers exceeds our current inventory, the observer punishes the model for every sale lost, where:
-$$
-\text{number of customers} <= \text{orders_sold} - \text{orders_missed} <= \text{number of customers}
-$$
+
+number of customers <= orders_sold - orders_missed <= number of customers
+
 
 # Model
 
@@ -103,7 +118,7 @@ Now we can construct the model. This is the agent that takes a state from the en
 depending on a policy.
 
 To update a policy, first we define a lookup-table. This table is responsible for holding an estimated reward prediction
-for every action, state pair. We will define this lookup table as self.state_actions.
+for every action/state pair. We will define this lookup table as self.state_actions.
 
 Next, to choose an action depending on the values in our lookup table, we also need to define a probability distribution
 for each state. In each state, every action will have a certain probability of occurring, such that:
@@ -115,8 +130,8 @@ probabilities where the index of the probability represents the action the model
 self.state_action_distribution.
 
 Finally, we define some hyperparameters. $\gamma$ is responsible for controlling the weight in which future rewards have
-an effect on current rewards. $\epsilon$ is responsible for the speed in which the state, action probability distribution
-is updated. Finally, $\alpha$ is responsible for how quickly our state_action lookup table is updated.
+an effect on current rewards. $\epsilon$ is responsible for the speed in which the state/action probability distribution
+is updated. Furthermore, $\alpha$ is responsible for how quickly our state_action lookup table is updated.
 
 ```{python}
 
@@ -167,20 +182,21 @@ First, the model updates the state, action value table.
         optimal_future_action = self.get_max_value(future_state)
 
         self.state_actions[self.current_SA] += (self.alpha *
-                                                              (reward + (self.gamma *
-                                                                         self.state_actions[future_state][
-                                                                             optimal_future_action]) -
-                                                               self.state_actions[self.current_SA]))
+                                                 (reward + (self.gamma *
+                                                  self.state_actions[future_state][
+                                                  optimal_future_action]) -
+                                                  self.state_actions[self.current_SA]))
         self.update_distribution(self.current_SA[0])
 ```
 
 Here, the current state action pair in our lookup table, represents a reward prediction for our current state action.
-We take this prediction, and find update its accuracy by finding the difference between the prediction and the actual
+We take this prediction, and update its accuracy by finding the difference between the prediction and the actual
 reward. Added to this, is the predicted reward for the next best action using the current policy. This lets the model
 use future outcomes to determine the actual reward of an action at a given state.
 
 Next the model updates the probability distribution lookup table.
 ```{python}
+
     def update_distribution(self, state):
         best_action = self.get_max_value(state)
         for x in range(len(self.state_action_distribution[state])):
@@ -212,6 +228,7 @@ The smaller epsilon is, the more we let the model explore different actions for 
 
 get_max_value(int state) is a helper function that returns the action with the highest predicted reward given a state.
 ```{python}
+
     def get_max_value(self, state):
         return np.unravel_index(np.argmax(self.state_actions[state]), self.state_actions.shape)[1]
 ```
@@ -227,6 +244,7 @@ env1 = Environment(20, 50)
 model = Model(env1.actions, .9, 1, .03)
 
 trial = 200000
+customer_l = []
 
 for i in range(trial):
     next_action = model.get_action(env1)
@@ -240,14 +258,13 @@ The process detailed above occurs in the for loop. Until the experiment ends the
 passing them to the environment and the model accordingly. We create a list that stores how many customers came at each step.
 We will use this list to track how well our model performed.
 
-#Performance
+# Performance
 Now we would like to test how well our model did in choosing the best action. To do this, we use numpy to find the average
 action of the last 30 actions. We then compare this number to the expected amount of customers each step during the last
 30 steps of the experiment. Looking at these averages towards the end of the experiment, allows me to see if the model
 was able to train to an optimal strategy. An optimal strategy being if the model was able to restock at the same rate
 customers arrived in the store.
 ```{python}
-#| output: true
 print(customer_l[len(model.action_log) - 30:])
 print(model.action_log[len(model.action_log) - 30:])
 average_customer = np.average(customer_l[len(model.action_log) - 30:])
