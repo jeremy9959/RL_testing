@@ -66,24 +66,19 @@ class Model:
         best_action = self.get_max_value(state)
         self.state_action_distribution[state] -= (self.state_action_distribution[state] * self.epsilon)
         self.state_action_distribution[state][best_action] += self.epsilon
-        #for x in range(len(self.state_action_distribution[state])):
-        #    if x == best_action:
-        #        self.state_action_distribution[state][x] += (1 - self.state_action_distribution[state][x]) * self.epsilon
-        #    else:
-        #       self.state_action_distribution[state][x] -= self.state_action_distribution[state][x] * self.epsilon
 
     def get_max_value(self, state):
-        #return np.unravel_index(np.argmax(self.state_actions[state]), self.state_actions.shape)[1]
+
         return np.argmax(self.state_actions[state])
 
 if __name__ == "__main__":
-    env1 = Environment(20, 50)
+    env1 = Environment(1000, 40000)
 
-    model = Model(env1.actions, .9, 1, .03)
+    model = Model(env1.actions, 1, 1, .00009)
 
     customer_l = []
 
-    trial = 200000
+    trial = 140000
 
     for i in range(trial):
         next_action = model.get_action(env1)
