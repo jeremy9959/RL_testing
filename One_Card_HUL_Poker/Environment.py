@@ -173,10 +173,10 @@ class Environment:
 
     def start_over(self, stack_size):
         for player in self.players:
-            self.chips = stack_size
-            self.cards = None
-            self.chips_won = 0
-            self.chips_staked = 0
+            player.chips = stack_size
+            player.cards = None
+            player.chips_won = 0
+            player.chips_staked = 0
         self.pot = 0
         self.turn_tracker.reset()
         self.deck.shuffle()

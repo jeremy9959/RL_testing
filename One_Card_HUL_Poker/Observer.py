@@ -11,6 +11,7 @@ def process_state(state, tot_chip):
     return card_num, chip_amount, opp_action
 
 
+
 def process_action(action, env):
     if action == 0:
         return "FOLD"

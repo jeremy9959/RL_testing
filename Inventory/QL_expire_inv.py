@@ -48,7 +48,7 @@ class Environment:
                 n = 0
 
 
-        print(f"n: {n}, inventory: {self.inventory}")
+        #print(f"n: {n}, inventory: {self.inventory}")
         if n > 0:
             return n
         else:
@@ -102,10 +102,10 @@ class Environment:
         return 0
 
 class Model:
-    def __init__(self, actions, gamma, alpha, epsilon, dec_rate):
+    def __init__(self, actions, gamma, alpha, epsilon, dec_rate, shape):
         self.actions = actions
-        self.state_actions = np.zeros((20, 5, 40))
-        self.state_action_distribution = np.zeros((20, 5, 40))
+        self.state_actions = np.zeros(shape)
+        self.state_action_distribution = np.zeros(shape)
         self.state_action_distribution.fill(1/len(self.actions))
         self.current_SA = None
         self.alpha = [alpha, alpha]
@@ -116,7 +116,7 @@ class Model:
     def get_action(self, state):
         current_action = self.choose_action(state)
         self.action_log.append(current_action)
-        self.current_SA = (state[0], state[1], current_action)
+        self.current_SA = (state, current_action)
         return current_action
 
     def policy_update(self, reward, future_state, t):
@@ -125,11 +125,11 @@ class Model:
 
         optimal_future_action = self.get_min_value(future_state)
 
-        self.state_actions[self.current_SA] += (self.alpha[0] *
+        self.state_actions[self.current_SA[0]][self.current_SA[1]] += (self.alpha[0] *
                                                               (reward + (self.gamma *
                                                                          self.state_actions[future_state][
                                                                              optimal_future_action]) -
-                                                             self.state_actions[self.current_SA]))
+                                                             self.state_actions[self.current_SA[0]][self.current_SA[1]]))
         self.decay(t)
 
 
@@ -152,8 +152,8 @@ class Model:
         self.epsilon[0] = self.epsilon[1] / (1 + y)
 
 
-def env_process(env, max_inv):
-    inventory = min(round((20/max_inv) * env.tot_inventory), 19)
+def env_process(env, max_inv, model_amount, exp = True):
+    inventory = min(round((model_amount/max_inv) * env.tot_inventory), model_amount - 1)
 
     array = np.array(env.inventory)
 
@@ -163,11 +163,61 @@ def env_process(env, max_inv):
     total_count = np.sum(array)
 
     average_exp = round(total_weighted_index / total_count if total_count > 0 else 0)
-    return inventory, average_exp
+    if exp:
+        return inventory, average_exp
+    else:
+        return inventory
 
 def process_action(action, max_action):
     return action
     #return round((max_action/40) * action)
+
+
+def reward_v_time(time, reward_l):
+    plt.plot(time, reward_l, marker='o', linestyle='-', color='b', label='Cost over time')
+    plt.title('Graph of Reward vs Time', fontsize=14)
+    plt.xlabel('Time (t)', fontsize=12)
+    plt.ylabel('Reward', fontsize=12)
+    plt.grid(True)  # Add a grid for better readability
+    plt.legend()  # Add a legend
+    plt.show()
+def change_reward_v_time(time, average_cost):
+    plt.plot(time, average_cost, marker='o', linestyle='-', color='b', label='Average Cost over time')
+    plt.title('Average cost vs Time', fontsize=14)
+    plt.xlabel('Time (t)', fontsize=12)
+    plt.ylabel('Average Cost', fontsize=12)
+    plt.grid(True)  # Add a grid for better readability
+    plt.legend()  # Add a legend
+    plt.show()
+
+def aco_v_acs_v_act(c_o, c_s, c_t):
+    model = ["q-learning"]
+    x = np.arange(1)
+    average_cost = {"Average Outdating Cost": c_o, "Average Shortage Cost": c_s, "Average Total Cost": c_t}
+    fig, ax = plt.subplots(layout='constrained')
+
+    width = 0.25  # the width of the bars
+    multiplier = 0
+
+    for attribute, value in average_cost.items():
+        offset = width * multiplier
+        rects = ax.bar(offset, value, width, label=attribute)
+        ax.bar_label(rects, padding=3)
+        multiplier += 1
+
+
+    ax.set_ylabel('Average cost')
+    ax.set_title('Average costs for models')
+    ax.set_xticks(x+ width, labels = model)
+    ax.legend(loc='upper left', ncols=3)
+    ax.set_ylim(0, 20)
+
+    plt.show()
+
+def state_action_value_map(Q_sa):
+    plt.imshow(Q_sa)
+    plt.colorbar()
+    plt.show()
 
 if __name__ == "__main__":
     c_o = 1
@@ -177,41 +227,48 @@ if __name__ == "__main__":
     max_action = 40
     env1 = Environment(4, 5, max_inv, 4, 2)
 
-    model = Model([x for x in range(40)], .97, .4, .8, 1000000000000)
+    model = Model([x for x in range(40)], .97, .4, .8, 1000000000000, (20, 5, 40))
+    model_2 = Model([x for x in range(40)], .97, .4, .8, 1000000000000, (100, 40))
 
-    reward_l = []
-    average_cost = []
-    trial = 800
+    reward_l = [[],[]]
+    average_cost = [[], []]
 
-    state = env_process(env1, max_inv)
+    t_o = [[], []]
+    t_s = [[], []]
+
+    state = env_process(env1, max_inv, 20)
+    trial = 1000
     for i in range(trial):
         next_action = process_action(model.get_action(state), max_action)
         env1.buy_inventory(next_action)
         TO , TS , TM = env1.action_outcome()
+        t_o[0].append(TO)
+        t_s[0].append(TS)
         reward  = ((c_o * TO) + (c_s * TS ))
-        reward_l.append(reward)
-        average_cost.append(np.average(reward_l))
-        state = env_process(env1, max_inv)
+        reward_l[0].append(reward)
+        average_cost[0].append(np.average(reward_l[0]))
+        state = env_process(env1, max_inv, 20)
         model.policy_update(reward, state, i)
+
+    state = env_process(env1, max_inv, 100, exp = False)
+    trial = 50000
+    for i in range(trial):
+        next_action = process_action(model_2.get_action(state), max_action)
+        env1.buy_inventory(next_action)
+        TO, TS, TM = env1.action_outcome()
+        t_o[1].append(TO)
+        t_s[1].append(TS)
+        reward = ((c_o * TO) + (c_s * TS))
+        reward_l[1].append(reward)
+        average_cost[1].append(np.average(reward_l[1]))
+        state = env_process(env1, max_inv, 100, exp = False)
+        model_2.policy_update(reward, state, i)
 
 
     time = np.arange(len(reward_l))
-    """
-    plt.plot(time, reward_l, marker='o', linestyle='-', color='b', label='Cost over time')
-    plt.title('Graph of Reward vs Time', fontsize=14)
-    plt.xlabel('Time (t)', fontsize=12)
-    plt.ylabel('Reward', fontsize=12)
-    plt.grid(True)  # Add a grid for better readability
-    plt.legend()  # Add a legend
-    plt.show()
-    """
-    #print(f"Action list: {env1.action_space}")
-    plt.plot(time, average_cost, marker='o', linestyle='-', color='b', label='Average Cost over time')
-    plt.title('Average cost vs Time', fontsize=14)
-    plt.xlabel('Time (t)', fontsize=12)
-    plt.ylabel('Average Cost', fontsize=12)
-    plt.grid(True)  # Add a grid for better readability
-    plt.legend()  # Add a legend
-    plt.show()
+    #reward_v_time(time, reward_l[0])
+    #change_reward_v_time(time, average_cost[0])
+    #aco_v_acs_v_act(np.average(t_o[0]), np.average(t_s[0]), average_cost[0][-1])
 
 
+    state_action_value_map(model_2.state_actions)
