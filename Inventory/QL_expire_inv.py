@@ -174,6 +174,7 @@ def process_action(action, max_action):
 
 
 def reward_v_time(time, reward_l):
+
     plt.plot(time, reward_l, marker='o', linestyle='-', color='b', label='Cost over time')
     plt.title('Graph of Reward vs Time', fontsize=14)
     plt.xlabel('Time (t)', fontsize=12)
@@ -228,7 +229,7 @@ if __name__ == "__main__":
     env1 = Environment(4, 5, max_inv, 4, 2)
 
     model = Model([x for x in range(40)], .97, .4, .8, 1000000000000, (20, 5, 40))
-    model_2 = Model([x for x in range(40)], .97, .4, .8, 1000000000000, (100, 40))
+    model_2 = Model([x for x in range(40)], .97, .4, .8, 100000000, (100, 40))
 
     reward_l = [[],[]]
     average_cost = [[], []]
@@ -237,7 +238,7 @@ if __name__ == "__main__":
     t_s = [[], []]
 
     state = env_process(env1, max_inv, 20)
-    trial = 1000
+    trial = 500
     for i in range(trial):
         next_action = process_action(model.get_action(state), max_action)
         env1.buy_inventory(next_action)
@@ -251,7 +252,7 @@ if __name__ == "__main__":
         model.policy_update(reward, state, i)
 
     state = env_process(env1, max_inv, 100, exp = False)
-    trial = 50000
+    trial = 0
     for i in range(trial):
         next_action = process_action(model_2.get_action(state), max_action)
         env1.buy_inventory(next_action)
@@ -264,11 +265,13 @@ if __name__ == "__main__":
         state = env_process(env1, max_inv, 100, exp = False)
         model_2.policy_update(reward, state, i)
 
+    print(model.epsilon, model.alpha)
+    print(model_2.epsilon, model_2.alpha)
 
-    time = np.arange(len(reward_l))
+    time = np.arange(len(reward_l[0]))
     #reward_v_time(time, reward_l[0])
-    #change_reward_v_time(time, average_cost[0])
+    change_reward_v_time(time, average_cost[0])
     #aco_v_acs_v_act(np.average(t_o[0]), np.average(t_s[0]), average_cost[0][-1])
 
 
-    state_action_value_map(model_2.state_actions)
+    #state_action_value_map(model_2.state_actions)

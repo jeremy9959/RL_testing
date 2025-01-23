@@ -94,6 +94,7 @@ class Environment:
         return self.turn_tracker.dealer
 
     def next_round(self):
+        self.deck.shuffle()
         self.reward.put(self.players[1].chips_won - self.players[1].chips_staked)
         if self.players[0].chips <= 0:
             return -1
@@ -101,18 +102,21 @@ class Environment:
             return -2
         self.raise_ = False
         self.pot = 0
+        self.call_amount = 0
         for player in self.players:
             player.chips -= self.blinds
             self.pot += self.blinds
             player.cards = self.deck.deal_card()
             player.chips_won = 0
             player.chips_staked = 0
-        self.deck.shuffle()
+
         self.turn_tracker.reset()
         return self.turn_tracker.set_dealer()
 
     def action_handler(self, p_id, action):
         o_id = 1 if p_id == 0 else 0
+        print(f"Player ID: {p_id} Action: {action} Chips Before: {self.players[p_id].chips} Card: {self.players[p_id].cards} Chips: {self.players[p_id].chips}")
+
         match action:
             case "FOLD":
                 self.players[o_id].chips += self.pot
@@ -139,10 +143,13 @@ class Environment:
                 self.raise_ = True
 
                 self.turn_tracker.raise_reset(p_id)
-                self.players[p_id].chips -= min(self.raise_amount, self.players[p_id].chips)
-                self.players[p_id].chips_staked += min(self.raise_amount, self.players[p_id].chips)
-                self.pot += min(self.raise_amount, self.players[p_id].chips)
+                self.pot += min(self.raise_amount, self.players[p_id].chips) + self.call_amount
+                self.players[p_id].chips_staked += min(self.raise_amount, self.players[p_id].chips) + self.call_amount
+                self.players[p_id].chips -= min(self.raise_amount, self.players[p_id].chips) + self.call_amount
+
+
                 self.call_amount = min(self.raise_amount, self.players[p_id].chips)
+                print(f"Chips After: {self.players[p_id].chips}")
                 return o_id
 
     def winner(self):
@@ -151,12 +158,16 @@ class Environment:
         if winner != 2:
             self.players[winner].chips += self.pot
             self.players[winner].chips_won += self.pot
+
+            print(f"Board card: {self.board}, Winner ID: {winner}, Winner Chips: {self.players[winner].chips}, Pot: {self.pot}")
         else:
             half = self.pot //2
             self.players[0].chips += half
             self.players[1].chips += half
 
             self.players[1].chips_won += half
+
+
 
 
 
@@ -184,6 +195,3 @@ class Environment:
         self.reward = queue.Queue()
         self.call_amount = 0
         self.board = None
-
-    def check_all_in(self):
-        pass
