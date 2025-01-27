@@ -228,8 +228,8 @@ if __name__ == "__main__":
     max_action = 40
     env1 = Environment(4, 5, max_inv, 4, 2)
 
-    model = Model([x for x in range(40)], .97, .4, .8, 1000000000000, (20, 5, 40))
-    model_2 = Model([x for x in range(40)], .97, .4, .8, 100000000, (100, 40))
+    model = Model([x for x in range(40)], .97, .4, .8, 1000000, (20, 5, 40))
+    model_2 = Model([x for x in range(40)], .97, .4, 1, 10000000000000000000000000, (20, 5, 40))
 
     reward_l = [[],[]]
     average_cost = [[], []]
@@ -238,7 +238,7 @@ if __name__ == "__main__":
     t_s = [[], []]
 
     state = env_process(env1, max_inv, 20)
-    trial = 500
+    trial = 50000
     for i in range(trial):
         next_action = process_action(model.get_action(state), max_action)
         env1.buy_inventory(next_action)
@@ -251,8 +251,9 @@ if __name__ == "__main__":
         state = env_process(env1, max_inv, 20)
         model.policy_update(reward, state, i)
 
-    state = env_process(env1, max_inv, 100, exp = False)
-    trial = 0
+    env1 = Environment(4, 5, max_inv, 4, 2)
+    state = env_process(env1, max_inv, 20)
+    trial = 50000
     for i in range(trial):
         next_action = process_action(model_2.get_action(state), max_action)
         env1.buy_inventory(next_action)
@@ -262,15 +263,17 @@ if __name__ == "__main__":
         reward = ((c_o * TO) + (c_s * TS))
         reward_l[1].append(reward)
         average_cost[1].append(np.average(reward_l[1]))
-        state = env_process(env1, max_inv, 100, exp = False)
+        state = env_process(env1, max_inv, 20)
         model_2.policy_update(reward, state, i)
 
     print(model.epsilon, model.alpha)
     print(model_2.epsilon, model_2.alpha)
 
-    time = np.arange(len(reward_l[0]))
+    time1 = np.arange(len(reward_l[0]))
+    time2 = np.arange(len(reward_l[1]))
     #reward_v_time(time, reward_l[0])
-    change_reward_v_time(time, average_cost[0])
+    change_reward_v_time(time1, average_cost[0])
+    change_reward_v_time(time2, average_cost[1])
     #aco_v_acs_v_act(np.average(t_o[0]), np.average(t_s[0]), average_cost[0][-1])
 
 
