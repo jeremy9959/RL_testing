@@ -3,8 +3,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import sqlite3
 
-models = {0: "Q-Learning", 1: "Dummy", 2: "Call", 3: "Raise"}
-experiments = {0: "Q-Learning v. Dummy", 1: "Dummy v. Call", 2: "Dummy v. Raise", 3: "Model v. Call", 4: "Model v. Raise"}
+models = {0: "SARSA", 1: "Dummy", 2: "Call", 3: "Raise", 4: "Q-Learning"}
+experiments = {0: "SARSA v. Dummy", 1: "Dummy v. Call", 2: "Dummy v. Raise", 3: "SARSA v. Call", 4: "SARSA v. Raise",
+               5: "Q-Learning v. Dummy", 6: "Q-Learning v. Call", 7: "Q-Learning v. Raise" }
 def winrate(experiment_id, model_id):
     conn = sqlite3.connect('../Game_Log')
     df = pd.read_sql('''
@@ -37,3 +38,6 @@ if __name__ == '__main__':
     winrate(4, 0)
     winrate(1, 2)
     winrate(2, 3)
+    winrate(5, 4)
+    winrate(6, 4)
+    winrate(7, 4)

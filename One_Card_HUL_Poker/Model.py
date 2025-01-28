@@ -1,6 +1,6 @@
 import numpy as np
 class Model:
-    def __init__(self, actions, gamma, alpha, epsilon, dec_r, dec_ra):
+    def __init__(self, actions, gamma, alpha, epsilon, dec_r, dec_ra, Q_learn = False):
         self.actions = actions
         self.state_actions = np.zeros((12, 20, 2, 3))
         self.state_action_distribution = np.zeros((12, 20, 2, 3))
@@ -12,7 +12,7 @@ class Model:
         self.epsilon = [epsilon, epsilon]
         self.decay_rate_e = dec_r
         self.decay_rate_a = dec_ra
-
+        self.Q_learn = Q_learn
     def get_action(self, state):
         current_action = self.choose_action(state)
         self.action_log.append(current_action)
@@ -22,22 +22,21 @@ class Model:
     def policy_update(self, reward, next_state, t):
 
 
-        #optimal_future_action = self.get_max_value(next_state)
-        future_action = self.choose_action(next_state)
-        """
-        Q-Learning
-        self.state_actions[self.current_SA[0]][self.current_SA[1]] += (self.alpha[0] *
-                                                (reward + (self.gamma *
-                                                           self.state_actions[next_state][
-                                                               optimal_future_action]) -
-                                                 self.state_actions[self.current_SA[0]][self.current_SA[1]]))
-        """
-        self.state_actions[self.current_SA[0]][self.current_SA[1]] += (self.alpha[0] *
-                                                                       (reward + (self.gamma *
-                                                                                  self.state_actions[next_state][
-                                                                                      future_action]) -
-                                                                        self.state_actions[self.current_SA[0]][
-                                                                            self.current_SA[1]]))
+        if self.Q_learn:
+            optimal_future_action = self.get_max_value(next_state)
+            self.state_actions[self.current_SA[0]][self.current_SA[1]] += (self.alpha[0] *
+                                                    (reward + (self.gamma *
+                                                               self.state_actions[next_state][
+                                                                   optimal_future_action]) -
+                                                        self.state_actions[self.current_SA[0]][self.current_SA[1]]))
+        else:
+            future_action = self.choose_action(next_state)
+            self.state_actions[self.current_SA[0]][self.current_SA[1]] += (self.alpha[0] *
+                                                                           (reward + (self.gamma *
+                                                                                      self.state_actions[next_state][
+                                                                                          future_action]) -
+                                                                            self.state_actions[self.current_SA[0]][
+                                                                                self.current_SA[1]]))
         self.decay(t)
         #self.update_distribution(self.current_SA[0])
 
