@@ -1,6 +1,6 @@
 import numpy as np
 class Model:
-    def __init__(self, actions, gamma, alpha, epsilon, dec_r):
+    def __init__(self, actions, gamma, alpha, epsilon, dec_r, dec_ra):
         self.actions = actions
         self.state_actions = np.zeros((12, 20, 2, 3))
         self.state_action_distribution = np.zeros((12, 20, 2, 3))
@@ -10,7 +10,8 @@ class Model:
         self.action_log = []
         self.gamma = gamma
         self.epsilon = [epsilon, epsilon]
-        self.decay_rate = dec_r
+        self.decay_rate_e = dec_r
+        self.decay_rate_a = dec_ra
 
     def get_action(self, state):
         current_action = self.choose_action(state)
@@ -53,8 +54,9 @@ class Model:
 
 
     def decay(self, t):
-        y = (t ** 2) / (self.decay_rate + t)
-        self.alpha[0] = self.alpha[1] / (1 + y)
+        y = (t ** 2) / (self.decay_rate_e + t)
+        z = (t ** 2) / (self.decay_rate_a + t)
+        self.alpha[0] = self.alpha[1] / (1 + z)
         self.epsilon[0] = self.epsilon[1] / (1 + y)
 """
     def update_distribution(self, state):
