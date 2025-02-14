@@ -2,9 +2,10 @@ import numpy as np
 class Model:
     def __init__(self, actions, gamma, alpha, epsilon, dec_r, dec_ra, Q_learn = False):
         self.actions = actions
-        self.state_actions = np.zeros((12, 20, 2, 3))
-        self.state_action_distribution = np.zeros((12, 20, 2, 3))
+        self.state_actions = np.zeros((12, 20, 20, 3))
+        self.state_action_distribution = np.zeros((12, 20, 20, 3))
         self.state_action_distribution.fill(1 / 3)
+        self.state_actions_count = np.zeros((12, 20, 20, 3))
         self.current_SA = None
         self.alpha = [alpha, alpha]
         self.action_log = []
@@ -37,6 +38,7 @@ class Model:
                                                                                           future_action]) -
                                                                             self.state_actions[self.current_SA[0]][
                                                                                 self.current_SA[1]]))
+        self.state_actions_count[self.current_SA[0]][self.current_SA[1]] += 1
         self.decay(t)
         #self.update_distribution(self.current_SA[0])
 

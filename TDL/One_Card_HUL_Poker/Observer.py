@@ -3,13 +3,14 @@ def process_state(state, tot_chip, p_id):
     p_ind = 0 if p_id == state.players[0].id else 1
     card = state.players[p_ind].cards
     card_num = card - 2
-    chip_amount = int((20/tot_chip) * state.players[p_ind].chips) - 1
+    chip_amount = int((20/tot_chip) * state.players[p_ind].chips)
     if chip_amount >= 20:
         chip_amount = 19
-    elif chip_amount < 0:
-        chip_amount = 0
-    opp_action = 1 if state.raise_ else 0
-    return card_num, chip_amount, opp_action
+    pot_size = int((20/tot_chip) * state.pot)
+    if pot_size >= 20:
+        pot_size = 19
+
+    return card_num, chip_amount, pot_size
 
 
 
@@ -38,10 +39,12 @@ def process_action(action, env, p_id):
         return "RAISE"
 
 
-def get_reward(game, model, t, state):
-    if game.reward.empty():
-        model.policy_update(0, state, t)
-    else:
+def get_reward(game, model, t, state, db):
+    reward = 0
+    n = max(game.reward.qsize(), 1)
+    while not game.reward.empty():
+        reward += game.reward.get()
+    model.policy_update(reward/n, state, t)
 
-        reward = game.reward.get()
-        model.policy_update(reward, state, t)
+    db.log_reward(0, state[0], state[1], state[2], model.current_SA[1], reward/n)
+

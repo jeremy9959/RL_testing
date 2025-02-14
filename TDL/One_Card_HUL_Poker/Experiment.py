@@ -44,9 +44,9 @@ def model_v_simple_m(simple, experiment_id, m_id, **kwargs):
                 action = process_action(a, game, turn)
 
             else:
-                state = process_state(game, tot_chips, m_id)
+                state = process_state(game, tot_chips + 20, m_id)
                 if val:
-                    get_reward(game, q_model, t, state)
+                    get_reward(game, q_model, t, state, db)
                     t += 1
                 a = q_model.get_action(state)
                 action = process_action(a, game, turn)
@@ -55,13 +55,14 @@ def model_v_simple_m(simple, experiment_id, m_id, **kwargs):
 
 
             ind = 0 if turn == players[0].id else 1
-            db.log_action(turn, game.players[ind].chips, game.players[ind].cards, action)
+            db.log_action(turn, game.players[ind].chips, game.players[ind].cards, action, game.pot)
             turn = game.action_handler(turn, action)
-            state = process_state(game, tot_chips, m_id)
+            """
+            state = process_state(game, tot_chips + 20, m_id)
             if val:
                 get_reward(game, q_model, t, state)
                 t += 1
-
+            """
         if turn == -1:
             db.log_game(m_id)
         else:
@@ -69,6 +70,8 @@ def model_v_simple_m(simple, experiment_id, m_id, **kwargs):
 
 
         game.start_over(20)
+    print(q_model.epsilon, q_model.alpha)
+    db.save_Q(m_id, q_model.state_actions, q_model.state_actions_count)
     db.commit()
     db.close()
 
@@ -107,6 +110,7 @@ def dummy_v_simple_m(dummy, simple, trial_time, experiment_id):
 
         game.start_over(20)
 
+
     db.commit()
     db.close()
 
@@ -139,15 +143,19 @@ if __name__ == '__main__':
 
 
     model_params = {
-        'T': 20000,
+        'T': 4000000,
         'gamma':.987,
         'alpha': .25,
         'epsilon': .9,
-        'epsilon_dec': 255000000000,
-        'alpha_dec': 655000000000,
+        'epsilon_dec': 10555000000000,
+        'alpha_dec': 13355000000000,
         'Q-learn': False
     }
-    #DatabaseLog(-1).wipe()
+    #DatabaseLog(-1).wipe(0)
+    #DatabaseLog(-1).wipe(3)
+    DatabaseLog(-1).wipe(4)
+
+
 
     #Q-model v all models
     #model_v_simple_m(dummy, 0, 0, **model_params)
@@ -156,14 +164,14 @@ if __name__ == '__main__':
     #model_v_simple_m(call, 3, 0, **model_params)
 
 
-    #model_v_simple_m(Raise, 4, 0, **model_params)
+    model_v_simple_m(Raise, 4, 0, **model_params)
 
     model_params['Q-learn'] = True
-    model_v_simple_m(dummy, 5, 4, **model_params)
+    #model_v_simple_m(dummy, 5, 4, **model_params)
 
-    model_v_simple_m(call, 6, 4, **model_params)
+    #model_v_simple_m(call, 6, 4, **model_params)
 
-    model_v_simple_m(Raise, 7, 4, **model_params)
+    #model_v_simple_m(Raise, 7, 4, **model_params)
 
 
     #Simple models v dummy

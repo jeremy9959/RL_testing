@@ -1,0 +1,82 @@
+---
+title: "Temporal Difference Learning"
+author: "Chad Gothelf"
+format: pdf
+subtitle: "A study on TD learning models"
+date: 01/30/2025
+header-includes: |
+  \usepackage{fancyhdr}
+  \pagestyle{fancy}
+  \fancyhead[L]{TD Learning}
+  \fancyhead[C]{C. Gothelf}
+  \fancyhead[R]{\thepage}
+include-in-header:
+  text: |
+    \usepackage{fvextra}
+    \DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,commandchars=\\\{\}}
+---
+
+# Introduction
+Reinforcement learning consists of techniques that allow programs to learn, act, and adapt in niche environments. While
+the idea of reinforcement learning has been around for decades, this concept has recently surfaced to me in the form of
+inventory control. While reading the works of {insert O'reily}, the idea of getting a model to learn and take logical
+actions peaked my interest. To learn more about this topic, I chose to first try to replicate an experiment done by
+{insert research paper}.
+
+{detail more about experiment}
+The goal in this experiment was to train a model to order stock and minimize the cost of missing
+orders and expired stock.
+
+My results, which are posted and accessible on my github account, were satisfactory, although I still had lingering
+questions about these models. These questions all converged around a greater inquisition: how do these models train, and
+what are their limits?
+
+To answer this question, I wanted to create an environment that was simple, with a relatively small state space;
+while also being complex, where different levels of skill could be checked both scientifically and obserevablly. Ultimately,
+the environment I settled on was a simplified game of heads up poker.
+
+# Environment
+The experiment always begins with the environment. The environment I created follows a similar ruleset to heads up limit
+poker (HULP). In this game, each player is dealt a card. The card is taken from a deck of 26 cards. Each card in this deck
+only has a numeric value, no suits. Jacks, Queens, Kings, and Aces are converted to the integers 11, 12, 13, and 14 respectively.
+
+Furthermore, each player is given 20 chips, with the goal of the game being to take all of your opponents chips. Like poker,
+we start each round by taking a one chip ante from each player and adding it to a pot.
+
+After the cards are dealt, and the antes are taken, the betting now begins. One player each round is given the dealer title,
+whoever is dealer at the start of the round acts first. Each player is given the choice between 3 actions namely:
+fold, check/call, raise. If a player folds, the pot is given to the other player and a new round begins. If a player checks,
+two things can occur. First, the player is the first to act and their check is deferred to the other player. Second,
+the first player checked and deferred their action to the second, and the second player checks, the board is run and a winner
+is determined. Calling is the action of calling a raise from an opponent. If a player calls the board is run, a winner is decided
+and the next round begins. Lastly, if a player raises, they enter 2 chips into the pot. If the other player wants to play
+and see the run-out, they need to call. If the opponent folds, the pot is given to the opponent who raised. Finally, if the
+opponent chooses to reraise, they call the opponents raise, and raise 2 more chips deferring the action back to their opponent.
+
+When someone calls, checks or goes all in and the board is run, a player wins if they get a pair of cards. If no player
+gets a pair of cards, then the high card of the two cards is given the pot. In the event that both players hold the same card
+the pot is split and the players are given their chips back.
+
+# Experiment
+I created two TD models. The first being a SARSA (state action reward state action) model, and a QL (Q-Learning) model
+{reference o'reiley}. I tested these models against 3 "dummy" models. The first being a model that chooses actions uniformly
+randomly, a model that only calls, and a model that only raises. I then evaluated the learning process of each model by
+logging the average winrate every 200 games of each learning process. Each experiment, the models played 20000 games, with
+one game ending when a player has 0 chips.
+
+# Model
+I programmed two TD models, the first being Q-Learning, and the second being Sarsa. Both of these algorithms store reward predictions
+in a table for each state, action pair.
+
+QL Algorithm:
+
+$$
+Q_\pi(s, a) \rightarrow Q_\pi(s, a) + \alpha \left (r + \gamma\max_{a^{\prime} \in \mathcal{A}} Q_\pi(s^{\prime}, a^{\prime}) - Q_\pi(s, a)\right)
+$$
+
+Sarsa Algorithm:
+
+$$
+Q_\pi(s, a) \rightarrow Q_\pi(s, a) + \alpha \left (r + \gamma Q_\pi(s^{\prime}, a^{\prime}) - Q_\pi(s, a)\right)
+$$
+
