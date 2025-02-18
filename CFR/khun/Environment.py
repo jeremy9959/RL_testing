@@ -7,8 +7,6 @@ class KhunEnv:
         self.seq_id = 0
         self.pot = 0
 
-
-
     def get_next_turn(self):
 
         return self.sequence[self.seq_id]

@@ -63,11 +63,18 @@ class Player:
         self.I = None
         self.epsilon = epsilon
         self.count = 0
+        self.c_Pol = Dict()
+
+
+
 
 
     def update(self, I, a, r):
         self.c_Regret[I][a] += r
         self.count += 1
+
+    def accum_pol(self, I, a, prob):
+        self.c_Pol[I][a] += prob
 
     def get_distribution(self, I):
         R = sum(value for value in self.c_Regret[I].values() if value > 0)
@@ -79,6 +86,7 @@ class Player:
     def get_actions(self, I):
         return [x for x in self.c_Regret[I].keys()]
     def sample(self, I):
+        #print(f"Player: {self.i} Cum regret on I: {self.c_Regret[I]}, dist: {self.get_distribution(I)}")
         return np.random.choice(self.get_actions(I), p = self.get_distribution(I), size = 1)[0]
     def get_random_distribution(self, I):
         return [1/len(self.c_Regret[I]) for i in range(len(self.c_Regret[I]))]
@@ -91,3 +99,20 @@ class Player:
         else:
             return self.c_Regret[I][a]/R
 
+
+    def get_average_strategy(self):
+
+        a_Pol = Dict()
+        for I in self.c_Pol.keys():
+            n_sum = 0
+            for a in self.c_Pol[I].keys():
+                n_sum += self.c_Pol[I][a]
+
+            for a in self.c_Pol[I].keys():
+                if n_sum != 0:
+                    a_Pol[I][a] = self.c_Pol[I][a]/n_sum
+                else:
+                    a_Pol[I][a] = 1/len(self.c_Pol[I])
+
+
+        return a_Pol
