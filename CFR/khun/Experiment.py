@@ -10,8 +10,6 @@ def traverse(a, env, i, players):
     if a is not None: env.sample_action(i.i, a)
     if env.is_terminal(): return env.utility()[i.i]
 
-
-
     t = env.get_next_turn()
     while t != i.i:
 
@@ -27,7 +25,6 @@ def traverse(a, env, i, players):
         t = env.get_next_turn()
 
     for a in i.c_Regret[env.N[i.i].I].keys():
-
         r[a] = traverse(a, env, i, players)
         g += r[a] * (i.get_action_probability(env.N[i.i].I, a))
 
